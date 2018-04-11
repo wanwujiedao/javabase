@@ -11,6 +11,7 @@
     <modules>
         <module>decorate</module>
         <module>datastructure</module>
+        <module>thread</module>
     </modules>
 
     <build>
