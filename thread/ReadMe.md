@@ -315,11 +315,11 @@
 
 ###### (1) <label style="color=#FF0923">ThreadPoolExecutor.AbortPolicy</label>:丢弃任务并抛出RejectedExecutionException异常
 
-###### (1) <label style="color=#FF0923">ThreadPoolExecutor.DiscardPolicy</label>：也是丢弃任务，但是不抛出异常
+###### (2) <label style="color=#FF0923">ThreadPoolExecutor.DiscardPolicy</label>：也是丢弃任务，但是不抛出异常
 
-###### (1) <label style="color=#FF0923">ThreadPoolExecutor.DiscardOldestPolicy</label>：丢弃队列最前面的任务，然后重新尝试执行任务（重复此过程）
+###### (3) <label style="color=#FF0923">ThreadPoolExecutor.DiscardOldestPolicy</label>：丢弃队列最前面的任务，然后重新尝试执行任务（重复此过程）
 
-###### (1) <label style="color=#FF0923">ThreadPoolExecutor.CallerRunsPolicy</label>：由调用线程处理该任务
+###### (4) <label style="color=#FF0923">ThreadPoolExecutor.CallerRunsPolicy</label>：由调用线程处理该任务
 
 
 
@@ -333,8 +333,5 @@
 
 - 判断线程是否都处于工作状态，若没有，则新创建一个线程来执行任务，若已经满了，则交给饱和策略来处理这个任务
 
-<div style="width:600px;height:350px;margin:auto">
-    <img style="width:600px;" src="../img/threadpool_work_flow.png" title="线程池工作流程"/>
-<div>
-
+![线程池工作流程](../img/threadpool_work_flow.png)
 
