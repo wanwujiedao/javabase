@@ -13,11 +13,13 @@
     <artifactId>data-structure</artifactId>
     <packaging>pom</packaging>
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
         <dependency>
-            <groupId>admanager.com.google.guava</groupId>
+            <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>16.0.1</version>
+            <version>27.1-jre</version>
         </dependency>
+
     </dependencies>
 
 

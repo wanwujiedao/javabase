@@ -202,6 +202,427 @@
   
 **注：一般推荐采用实现接口的方式来创建多线程**
 
+
+
+## 一些案例
+
+案例来自于一些哥们和我分享的面试题，目前我这边听到最多的就是设计死锁和线程安全问题，下面我对这两个问题一一分析，不当之处，欢迎指正，我一贯认为写博客其实就是帮助自己成长的一种形式，也是给自己记录笔记，在各位大佬的指正下，我会成长的更快。
+
+### 死锁问题
+如何设置一个死锁程序？可能很多人一下子很蒙圈，若能理清什么是死锁，然后反向考虑，问题便很简单，一般来说产生死锁的原因就是资源申请不下来，线程一直处于阻塞等待状态，那么反向考虑只需要2个线程便能设计一个死锁程序，暂且设定两个线程 A、B ，并设置两个条件必须同时在一个线程拥有这两个条件才能执行结束，否则两个线程就处于阻塞状态，这样便设计出死锁程序了，话不多说，直接撸代码。
+
+```java
+
+
+/**
+ * 死锁程序设计
+ *
+ * @author 阿导
+ * @CopyRight 万物皆导
+ * @Created 2019年03月25日 14:22:00
+ */
+public class DeadThread {
+    /**
+     *  AB 执行的必要条件
+     */
+    private static Object conditionAB = new Object();
+    /**
+     * BA 执行的必要条件
+     */
+    private static Object conditionBA = new Object();
+
+    /**
+     * 主程序
+     * @param args
+     */
+    public static void main(String[] args) {
+        // 线程 A
+        Thread threadA = new Thread(()->{
+         synchronized (conditionAB){
+             System.out.println("A 线程开始");
+
+
+             System.out.println("A 线程即将进入阻塞状态");
+
+             synchronized (conditionBA){
+                 System.out.println("A 线程阻塞状态结束");
+             }
+
+             System.out.println("A 线程结束");
+
+         }
+        });
+
+        // 线程 B
+        Thread threadB = new Thread(()->{
+            synchronized (conditionBA){
+                System.out.println("B 线程开始");
+
+                System.out.println("B 线程即将进入阻塞状态");
+
+                synchronized (conditionAB){
+                    System.out.println("B 线程阻塞状态结束");
+                }
+
+                System.out.println("B 线程结束");
+
+            }
+        });
+
+        threadA.start();
+        threadB.start();
+    }
+}
+
+
+```
+
+
+### 线程安全问题
+
+前几天，过去和我共事的一个小哥们说他去面试了蚂蚁金服，他说面试官给他一个线程安全方面的问题，思路不是很清晰，因为阿导面试经验不是很丰富，对那些所谓的面试套路，面试题存储量是很少的，来杭州总共面试两次，都是同一个大佬，也没怎么太刁难我，所以很多面试题目我都表示很慌的，既然哥们有求于我，那怎么也得仗义相助一下，首先蚂蚁金服那位大佬的面试题如下：
+
+```java
+
+学生成绩数据查询、修改、打印功能
+【场景描述】
+使用多线程方式，实现学生成绩数据查询、修改、打印功能。
+线程A：从数据库中获取学生的成绩数据（stu_id, score1, score2, score3），stu_id代表学生ID，score1 - score3是代表三门课的成绩
+线程B：会对这三门课的成绩进行修改
+线程C：会对这三门课的成绩进行打印输出
+
+【要求】
+1.在线程B修改成绩的过程中，线程C不能对成绩进行打印，线程A不能读取数据
+2.线程A从数据库读取数据的过程中，线程B不能修改成绩，线程C也不能打印成绩
+3.线程C打印成绩的过程中，线程A不能读取数据，线程B不能修改数据。
+4.主线程用于检测3个线程的状态，如果线程挂了，则重启线程。
+
+学生成绩服务接口：
+
+/**
+ * 查询学生成绩
+ * @param stuId 学生ID，由cmd控制台输入
+ * @return 学生成绩模型
+ **/
+public StudentDO StudentService.queryStudent(String stuId);
+
+/**
+ * 修改学生成绩
+ * @param student 学生模型，由cmd控制台输入
+ * @return 修改影响记录数
+ **/
+public int StudentService.updateStudent(StudentDO student);
+
+/**
+ * 打印学生成绩
+ * @param student 学生模型
+ **/
+public void StudentService.printStudent(StudentDO student);
+
+
+public class StudentManager {
+    public static void main(String[] args) {
+       // TODO 完成此处的代码
+
+    }
+}
+
+```
+
+当哥们发过来面试题的时候，我这边因为在忙项目，并没仔细看题目，我以为是侧重点是线程竞争问题，等我这边事情忙完了，我仔细审题了一遍，发现这应该考虑的是线程安全问题。
+
+其实实现方式有很多种，最为简单的无非就是加个锁，我这边以重入锁为例，大家也可以尝试其他的实现方式，以下是我的代码示例。
+
+```java
+
+package com.dao.example;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * 线程安全问题
+ *
+ * @author 阿导
+ * @CopyRight 萬物皆導
+ * @Created 2019年03月25日 16:55:00
+ */
+public class ThreadSafe {
+
+    /**
+     * 重入锁锁定当前执行的对象，只是测试，正式环境慎用，防止导致死锁的情况
+     */
+    private static Lock lock = new ReentrantLock();
+
+    /**
+     * 业务实现，只是示例，实际写代码应该单独写一个类去实现接口，建议平时开发注意依赖倒置原则
+     */
+    private StudentService studentService = new StudentService() {
+        @Override
+        public StudentDO queryStudent(Long stuId) {
+            System.out.println("查询学生信息:" + stuId);
+            return new StudentDO();
+        }
+
+        @Override
+        public int updateStudent(StudentDO student) {
+            System.out.println("更新学生信息" + student.getId());
+
+            return 0;
+        }
+
+        @Override
+        public void printStudent(StudentDO student) {
+            System.out.println("打印学生信息" + student.getId());
+
+        }
+    };
+
+    /**
+     * 打印学生成绩适配器
+     */
+    private StudentServiceAdapter printAdapter = new PrintAdapter();
+    /**
+     * 更新学生成绩适配器
+     */
+    private StudentServiceAdapter updateAdapter = new UpdateAdapter();
+    /**
+     * 查询学生信息适配器
+     */
+    private StudentServiceAdapter queryAdapter = new QueryAdapter();
+
+    /**
+     * 主方法
+     *
+     * @param args
+     */
+    public static void main(String[] args) {
+        ThreadSafe main = new ThreadSafe();
+        StudentDO studentDO = new StudentDO();
+        Long id = 0L;
+        studentDO.setId(id);
+        // 根据适配器选择不同的操作
+        Thread threadA = getThread(main.studentService, studentDO, main.queryAdapter);
+        Thread threadB = getThread(main.studentService, studentDO, main.updateAdapter);
+        Thread threadC = getThread(main.studentService, studentDO, main.printAdapter);
+
+        // 主线程检测线程状态
+        while (true) {
+            if (threadA == null || !threadA.isAlive() || threadA.isInterrupted()) {
+                (threadA = getThread(main.studentService, studentDO, main.queryAdapter)).start();
+            }
+            if (threadB == null || !threadB.isAlive() || threadA.isInterrupted()) {
+                (threadB = getThread(main.studentService, studentDO, main.updateAdapter)).start();
+            }
+            if (threadC == null || !threadC.isAlive() || threadA.isInterrupted()) {
+                (threadC = getThread(main.studentService, studentDO, main.printAdapter)).start();
+            }
+        }
+    }
+
+
+    /**
+     * 业务处理适配接口层
+     *
+     * @author 阿导
+     * @CopyRight 萬物皆導
+     * @created 2019/3/25 17:08
+     * @Modified_By 阿导 2019/3/25 17:08
+     */
+    interface StudentServiceAdapter {
+        /**
+         * 适配处理
+         *
+         * @param studentService
+         * @param studentDO
+         * @return
+         * @author 阿导
+         * @time 2019/3/25 17:10
+         * @CopyRight 萬物皆導
+         */
+        void doAdapter(StudentService studentService, StudentDO studentDO);
+    }
+
+    class PrintAdapter implements StudentServiceAdapter {
+
+        /**
+         * 适配处理：打印學生成績
+         *
+         * @param studentService
+         * @param studentDO
+         * @return
+         * @author 阿导
+         * @time 2019/3/25 17:10
+         * @CopyRight 萬物皆導
+         */
+        @Override
+        public void doAdapter(StudentService studentService, StudentDO studentDO) {
+            studentService.printStudent(studentDO);
+        }
+    }
+
+    class UpdateAdapter implements StudentServiceAdapter {
+
+        /**
+         * 适配处理：更新學生信息
+         *
+         * @param studentService
+         * @param studentDO
+         * @return
+         * @author 阿导
+         * @time 2019/3/25 17:10
+         * @CopyRight 萬物皆導
+         */
+        @Override
+        public void doAdapter(StudentService studentService, StudentDO studentDO) {
+            studentService.updateStudent(studentDO);
+        }
+    }
+
+    class QueryAdapter implements StudentServiceAdapter {
+
+        /**
+         * 适配处理：查詢學生信息
+         *
+         * @param studentService
+         * @param studentDO
+         * @return
+         * @author 阿导
+         * @time 2019/3/25 17:10
+         * @CopyRight 萬物皆導
+         */
+        @Override
+        public void doAdapter(StudentService studentService, StudentDO studentDO) {
+            studentService.queryStudent(studentDO.getId());
+        }
+    }
+
+
+    /**
+     * 获取线程
+     *
+     * @param studentService
+     * @param studentDO
+     * @param serviceAdapter
+     * @return
+     * @author 阿导
+     * @time 2019/3/25 17:03
+     * @CopyRight 萬物皆導
+     */
+    private static Thread getThread(StudentService studentService, StudentDO studentDO, StudentServiceAdapter serviceAdapter) {
+        return new Thread(() -> {
+            try {
+                lock.lock();
+                // 模拟业务处理
+                Thread.sleep(50L);
+                studentDO.setId(studentDO.getId() + 1L);
+                // 根据适配器去选择不同的操作
+                serviceAdapter.doAdapter(studentService, studentDO);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        }
+        );
+    }
+}
+
+
+/**
+ * 学生操作业务接口层
+ *
+ * @author 阿导
+ * @CopyRight 萬物皆導
+ * @created 2019/3/25 16:56
+ * @Modified_By 阿导 2019/3/25 16:56
+ */
+
+interface StudentService {
+    /**
+     * 查询学生成绩
+     *
+     * @param stuId 学生ID，由cmd控制台输入
+     * @return 学生成绩模型
+     **/
+
+    StudentDO queryStudent(Long stuId);
+
+    /**
+     * 修改学生成绩
+     *
+     * @param student 学生模型，由cmd控制台输入
+     * @return 修改影响记录数
+     **/
+
+    int updateStudent(StudentDO student);
+
+    /**
+     * 打印学生成绩
+     *
+     * @param student 学生模型
+     **/
+
+    void printStudent(StudentDO student);
+}
+
+/**
+ * 学生实体
+ *
+ * @author 阿导
+ * @CopyRight 萬物皆導
+ * @created 2019/3/25 16:56
+ * @Modified_By 阿导 2019/3/25 16:56
+ */
+
+class StudentDO {
+    /**
+     *
+     */
+    private Long id;
+
+    private Integer score1;
+    private Integer score2;
+    private Integer score3;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Integer getScore1() {
+        return score1;
+    }
+
+    public void setScore1(Integer score1) {
+        this.score1 = score1;
+    }
+
+    public Integer getScore2() {
+        return score2;
+    }
+
+    public void setScore2(Integer score2) {
+        this.score2 = score2;
+    }
+
+    public Integer getScore3() {
+        return score3;
+    }
+
+    public void setScore3(Integer score3) {
+        this.score3 = score3;
+    }
+}
+
+
+```
+
+
+
 ## 线程池
 
 > 为什么要用线程池？
