@@ -409,9 +409,9 @@ public class ThreadSafe {
 
         // 主线程检测线程状态
         while (true) {
-            keepThreadLive(threadA,main.studentService,studentDO,main.queryAdapter);
-            keepThreadLive(threadB,main.studentService,studentDO,main.updateAdapter);
-            keepThreadLive(threadC,main.studentService,studentDO,main.printAdapter);
+            threadA=keepThreadLive(threadA,main.studentService,studentDO,main.queryAdapter);
+            threadB=keepThreadLive(threadB,main.studentService,studentDO,main.updateAdapter);
+            threadC=keepThreadLive(threadC,main.studentService,studentDO,main.printAdapter);
         }
     }
 
@@ -427,10 +427,11 @@ public class ThreadSafe {
      * @param serviceAdapter
      * @return
      */
-    private static void keepThreadLive(Thread thread,StudentService studentService,StudentDO studentDO,StudentServiceAdapter serviceAdapter){
+    private static Thread keepThreadLive(Thread thread,StudentService studentService,StudentDO studentDO,StudentServiceAdapter serviceAdapter){
         if (thread == null || !thread.isAlive() || thread.isInterrupted()) {
             (thread = getThread(studentService, studentDO,serviceAdapter)).start();
         }
+        return;thread;
     }
 
 
