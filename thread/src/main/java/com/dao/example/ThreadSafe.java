@@ -71,18 +71,29 @@ public class ThreadSafe {
 
         // 主线程检测线程状态
         while (true) {
-            if (threadA == null || !threadA.isAlive() || threadA.isInterrupted()) {
-                (threadA = getThread(main.studentService, studentDO, main.queryAdapter)).start();
-            }
-            if (threadB == null || !threadB.isAlive() || threadA.isInterrupted()) {
-                (threadB = getThread(main.studentService, studentDO, main.updateAdapter)).start();
-            }
-            if (threadC == null || !threadC.isAlive() || threadA.isInterrupted()) {
-                (threadC = getThread(main.studentService, studentDO, main.printAdapter)).start();
-            }
+            keepThreadLive(threadA,main.studentService,studentDO,main.queryAdapter);
+            keepThreadLive(threadB,main.studentService,studentDO,main.updateAdapter);
+            keepThreadLive(threadC,main.studentService,studentDO,main.printAdapter);
         }
     }
 
+    /**
+     * 确保线程是活的
+     *
+     * @author 阿导
+     * @time 2019/3/26 9:49
+     * @CopyRight 万物皆导
+     * @param thread
+     * @param studentService
+     * @param studentDO
+     * @param serviceAdapter
+     * @return
+     */
+    private static void keepThreadLive(Thread thread,StudentService studentService,StudentDO studentDO,StudentServiceAdapter serviceAdapter){
+        if (thread == null || !thread.isAlive() || thread.isInterrupted()) {
+            (thread = getThread(studentService, studentDO,serviceAdapter)).start();
+        }
+    }
 
     /**
      * 业务处理适配接口层
